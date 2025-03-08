@@ -1,0 +1,14 @@
+set postmaster "postmaster"
+set no bouncemail
+set no spambounce
+set properties ""
+set daemon 60
+set invisible
+set logfile /dev/stdout
+set pidfile /var/run/fetchmail-{{USERNAME}}.pid
+
+poll imap.forwardemail.net protocol IMAP port 993
+      user '{{USERNAME}}@snj.au' there with ssl with password '{{PASSWORD}}' is '{{USERNAME}}' here
+      keep
+      mda "mda.sh {{USERNAME}}"
+

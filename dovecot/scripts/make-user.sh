@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Ensure openssl is installed
+if ! command -v openssl &> /dev/null; then
+    echo "openssl is required but not installed. Aborting."
+    exit 1
+fi
+
+# Check for correct number of arguments
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 username password"
+    exit 1
+fi
+
+USERNAME=$1
+PASSWORD=$2
+USERFILE="/opt/users"
+MAILDIR="/var/mail/$USERNAME/Maildir"
+
+# Check if PASSKEY environment variable is set
+if [ -z "$PASSKEY" ]; then
+    echo "PASSKEY environment variable is not set. Aborting."
+    exit 1
+fi
+
+# Encrypt the password using OpenSSL with AES-256-CBC
+ENCRYPTED_PASSWORD=$(echo -n "$PASSWORD" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -pass pass:"$PASSKEY")
+
+# Prepare the user line to be added or updated
+USER_LINE="$USERNAME:{ENCRYPTED}$ENCRYPTED_PASSWORD:1000:1000::${MAILDIR}::"
+
+# Check if the user already exists in the file
+if grep -q "^$USERNAME:" "$USERFILE"; then
+    # User exists, update the line
+    sed -i "/^$USERNAME:/c\\$USER_LINE" "$USERFILE"
+    echo "User $USERNAME updated successfully."
+else
+    # User does not exist, append the line
+    echo "$USER_LINE" >> "$USERFILE"
+    echo "User $USERNAME added successfully."
+fi
+

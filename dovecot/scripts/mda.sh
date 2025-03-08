@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Read the email from stdin
+mail=$(cat)
+
+# Check if the email contains attachments by looking for multipart/mixed
+if echo "$mail" | grep -q -i "Content-Type: multipart/mixed"; then
+  echo "Checking mail with ClamAV"
+  # Scan the email with ClamAV
+  echo "$mail" | /usr/bin/clamscan --stdout --no-summary - 2>/dev/null
+  scan_result=$?
+else
+  echo "Skipping ClamAV"
+  # No attachments found, assume clean
+  scan_result=0
+fi
+
+# Check the result of the scan
+if [ $scan_result -eq 1 ]; then
+  echo "Marking as infected"
+  # Virus detected
+  mail=$(printf "X-Virus-Status: Infected\n%b" "$mail")
+else
+  echo "Marking as clean"
+  # No virus found
+  mail=$(printf "X-Virus-Status: Clean\n%b" "$mail")
+fi
+
+echo "Passing to Spamassassin -> Dovecot > $1"
+# Pass the modified email to SpamAssassin and Dovecot
+echo "$mail" | /usr/bin/vendor_perl/spamassassin | /usr/lib/dovecot/deliver -d "$1"
+

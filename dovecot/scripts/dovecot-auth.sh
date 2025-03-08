@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Usage: dovecot-auth.sh username encrypted_password
+
+REPLIER="$1"
+
+LOG=/dev/stderr
+
+INPUT_FD=3
+
+ERR_PERMFAIL=1
+ERR_NOUSER=3
+ERR_TMPFAIL=111
+
+PASSKEY=$(cat /tmp/passkey)
+
+# Credentials lookup function. Given a user name it should output 'user:password' if such
+# account exists or nothing if it does not. Return non-zero code in case of error.
+credentials_lookup()
+{
+    local db="$1"
+    local user="$2"
+
+    awk -F ':' -v USER="$user" '($1 == USER) {print}' "$db" 2>>$LOG
+}
+
+# Credentials verification function. Given a user name and password it should output non-empty
+# string (this implementation outputs 'user:password') in case supplied credentials are valid
+# or nothing if they are not. Return non-zero code in case of error.
+credentials_verify()
+{
+    local db="$1"
+    local user="$2"
+    local pass="$3"
+    local key="$4"
+
+    # Check if user exists in the database
+    if ! grep -q "^$user:" "$db"; then
+        echo "Error: User '$user' not found in database." >&2
+        return 1  # Exit function with error code
+    fi
+
+    # Extract encrypted password
+    local encrypted=$(awk -v user="$user" -F: '$1 == user {sub(/{ENCRYPTED}/, "", $2); print $2}' "$db")
+
+    # Decrypt password
+    local decrypted=$(openssl enc -aes-256-cbc -d -a -pbkdf2 -pass pass:"$key" <<< "$encrypted")
+
+    # Verify if the decrypted password matches the given password  
+    if [[ "$decrypted" != "$pass" ]]; then
+        echo "Error: Authentication failed. Invalid password." >&2	
+        return 1  # Failure  
+    fi
+
+   echo "Credentials Verified" 
+}
+
+# Read input data. Password may be empty if not available (i.e. if doing credentials lookup).
+read -d $'\x0' -r -u $INPUT_FD USER
+read -d $'\x0' -r -u $INPUT_FD PASS
+
+export USER="`echo \"$USER\" | tr 'A-Z' 'a-z'`"
+
+if [ "$CREDENTIALS_LOOKUP" = 1 ]; then
+    action=credentials_lookup
+else
+    action=credentials_verify
+fi
+
+# Perform credentials lookup/verification.
+lookup_result=`$action "/opt/users" "$USER" "$PASS" "$PASSKEY"` || {
+    # If it failed, consider it an internal temporary error.
+    log_result "internal error (ran as `id`)"
+    exit $ERR_TEMPFAIL
+}
+
+if [[ -n "$lookup_result" ]]; then
+    # Dovecot calls the script with AUTHORIZED=1 environment set when performing a userdb lookup.
+    # The script must acknowledge this by changing the environment to AUTHORIZED=2,
+    # otherwise the lookup fails.
+    [ "$AUTHORIZED" != 1 ] || export AUTHORIZED=2
+
+    # At the end of successful authentication execute checkpassword-reply binary.
+    exec $1
+else
+    # If matching credentials were not found, return proper error code depending on lookup mode.
+    if [ "$AUTHORIZED" = 1 -a "$CREDENTIALS_LOOKUP" = 1 ]; then
+        log_result "lookup failed (user not found)"
+        exit $ERR_NOUSER
+    else
+        log_result "lookup failed (credentials are invalid)"
+        exit $ERR_PERMFAIL
+    fi
+fi

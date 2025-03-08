@@ -1,0 +1,60 @@
+services:
+  dovecot-archlinux:
+    build:
+      context: .
+      dockerfile: dovecot.Dockerfile
+    container_name: dovecot-archlinux
+    hostname: dovecot
+    environment:
+      TIMEZONE: ${TIMEZONE}
+      PASSKEY: ${PASSKEY}
+    volumes:
+      - ${DIR_MAIL_DOVECOT}:/var/mail
+      - ${DIR_CONF_DOVECOT}:/etc/dovecot:ro
+      - ${DIR_CONF_FETCHMAIL}:/opt/fetchmail
+      - ${DIR_CONF_SIEVE}:/opt/sieve
+      - ${DIR_CONF_UNBOUND}:/etc/unbound
+      - ${DIR_LIB_DOVECOT}:/var/lib/dovecot
+      - ${DIR_LIB_SPAMASSASSIN}:/var/lib/spamassassin
+      - ${DIR_LIB_SIEVE}:/var/lib/dovecot/sieve
+      - ${DIR_LIB_CLAMAV}:/var/lib/clamav
+      - ${DIR_SSL}:/etc/ssl
+      - ${DIR_LOG}:/var/log
+      - ${DIR_SPAMASSASSIN}:/root/.spamassassin
+      - ${DIR_LETSENCRYPT}:/etc/letsencrypt
+      - ${FILE_CONF_RESOLV}:/etc/resolv.conf:ro
+      - ${FILE_USERS}:/opt/users
+      - ${FILE_START}:/usr/local/bin/start.sh:ro
+      - ${FILE_FETCHMULTIMAIL}:/usr/local/bin/fetchmultimail.sh:ro
+      - ${FILE_MDA}:/usr/local/bin/mda.sh:ro
+      - ${FILE_DOVECOT_AUTH}:/usr/local/bin/dovecot-auth.sh:ro
+      - ${FILE_MAKE_USER}:/usr/local/bin/make-user.sh:ro
+    ports:
+      - 143:143
+      - 993:993
+      - 110:110
+      - 995:995
+    restart: unless-stopped
+    labels:
+      # Run nightly updates at midnight
+      deck-chores.dovecot-update-ca-certs.cron: "0 0 0"
+      deck-chores.dovecot-update-ca-certs.command: update-ca-trust
+      deck-chores.dovecot-update-clamav.cron: "0 0 0"
+      deck-chores.dovecot-update-clamav.command: freshclam --daemon-notify=/dev/null
+      deck-chores.dovecot-spamassassin.cron: "0 0 0"
+      deck-chores.dovecot-spamassassin.command: /usr/bin/vendor_perl/sa-update -D
+
+  dovecot-elasticsearch:
+    image: elasticsearch:7.17.28
+    container_name: dovecot-elasticsearch
+    ports:
+      - 9200
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: false
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+volumes:
+  elasticsearch-data:
+    driver: local

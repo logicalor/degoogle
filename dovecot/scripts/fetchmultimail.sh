@@ -1,0 +1,62 @@
+#!/bin/bash
+
+FETCHMAILROOT="/opt/fetchmail"
+USERFILE="/opt/users"
+CONFIG_TEMPLATE="$FETCHMAILROOT/fetchmailrc_template"
+
+declare -A CURRENT_USERS
+
+start_fetchmail() {
+    local username="$1"
+    local password="$2"
+    local config_template="$3"
+    local pid_file="/var/run/fetchmail-${username}.pid"
+    local config_file="/tmp/fetchmailrc_${username}"
+
+    echo "Decrypting password for user $username"
+    local decrypted_password=$(echo "$password" | openssl enc -aes-256-cbc -d -a -pbkdf2 -pass pass:"$PASSKEY" 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to decrypt password for user $username. Skipping."
+        return
+    fi
+
+    # Substitute the placeholders in the template
+    escaped_password=$(echo "$decrypted_password" | sed 's/&/\\&/g')
+    sed -e "s/{{USERNAME}}/${username}/g" -e "s/{{PASSWORD}}/${escaped_password}/g" "$config_template" > "$config_file"
+    chmod 0700 "$config_file"
+
+    echo "Starting fetchmail for user $username"
+    fetchmail -f "$config_file" --daemon 30 --pidfile "$pid_file" &
+}
+
+process_users_file() {
+    while IFS=: read -r username encrypted_password _; do
+        [ -z "$username" ] && continue
+
+        # Remove the {ENCRYPTED} prefix if present
+        encrypted_password=${encrypted_password#\{ENCRYPTED\}}
+
+        # Check if the user is already running
+        if [[ -z "${CURRENT_USERS[$username]}" ]]; then
+            start_fetchmail "$username" "$encrypted_password" "$CONFIG_TEMPLATE"
+            CURRENT_USERS["$username"]=1
+        fi
+    done < "$USERFILE"
+}
+
+# Check if PASSKEY environment variable is set
+if [ -z "$PASSKEY" ]; then
+    echo "PASSKEY environment variable is not set. Aborting."
+    exit 1
+fi
+
+# Initial process to start fetchmail for existing users
+process_users_file
+
+# Monitor for changes in the users file using inotifywait
+while inotifywait -e modify "$USERFILE"; do
+    echo "Detected change in $USERFILE. Processing..."
+    process_users_file
+done
+
