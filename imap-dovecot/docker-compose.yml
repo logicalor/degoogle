@@ -1,0 +1,96 @@
+services:
+  imap-dovecot:
+    container_name: imap-dovecot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      TIMEZONE: ${TIMEZONE}
+      PASSKEY: ${PASSKEY}
+    init: true
+    cap_add:
+      - CAP_SETGID
+      - CAP_SETUID
+    user: serviceuser
+    group_add:
+      - users
+      - dovecot
+      - dovenull
+      - fetchmail
+      - spamd
+      - clamav
+      - unbound
+    volumes:
+      - ./conf/dovecot:/etc/dovecot:ro
+      - ./conf/fetchmail/fetchmailrc_template:/opt/fetchmail/fetchmailrc_template:ro
+      - ./conf/resolv/resolv.conf:/etc/resolv.conf:ro
+      - ./conf/unbound/unbound.conf:/etc/unbound/unbound.conf:ro
+      - ./conf/sieve/default.sieve:/opt/sieve/default.sieve:ro
+      - ./scripts/start:/usr/local/bin/start:ro
+      - ./scripts/fetchmultimail:/usr/local/bin/fetchmultimail:ro
+      - ./scripts/mda:/usr/local/bin/mda:ro
+      - ./scripts/dovecot-auth:/usr/local/bin/dovecot-auth:ro
+      - ./scripts/make-user:/usr/local/bin/make-user:ro
+      - mail-dovecot-lib-clamav:/var/lib/clamav
+      - mail-dovecot-lib-spamassassin:/var/lib/spamassassin
+      - mail-dovecot-lib-dovecot:/var/lib/dovecot
+      - mail-dovecot-conf-unbound:/etc/unbound
+      - mail-dovecot-conf-sieve:/opt/sieve
+      - mail-dovecot-conf-users:/opt/users
+      - mail-dovecot-conf-ssl:/etc/ssl
+      - mail-dovecot-spamassassin:/home/serviceuser/.spamassassin
+      - mail-dovecot-log:/var/log
+      - ${DIR_MAIL_DOVECOT}:/var/mail
+      - ${DIR_LETSENCRYPT}:/etc/letsencrypt:ro
+    ports:
+#      - 143:143
+#      - 993:993
+      - 1143:143
+      - 1993:993
+    restart: unless-stopped
+#    entrypoint: ["/usr/local/bin/entrypoint.sh"]
+#    labels:
+#      # Run nightly updates at midnight
+#      deck-chores.dovecot-update-ca-certs.cron: "0 0 0"
+#      deck-chores.dovecot-update-ca-certs.command: update-ca-trust
+#      deck-chores.dovecot-update-clamav.cron: "0 0 0"
+#      deck-chores.dovecot-update-clamav.command: freshclam --daemon-notify=/dev/null
+#      deck-chores.dovecot-spamassassin.cron: "0 0 0"
+#      deck-chores.dovecot-spamassassin.command: /usr/bin/vendor_perl/sa-update -D
+
+#  imap-elasticsearch:
+#    image: elasticsearch:7.17.28
+#    container_name: imap-elasticsearch
+#    ports:
+#      - 9200
+#    environment:
+#      discovery.type: single-node
+#      xpack.security.enabled: false
+#    volumes:
+#      - mail-elasticsearch-data:/usr/share/elasticsearch/data
+#    restart: unless-stopped
+
+volumes:
+  mail-dovecot-lib-clamav:
+    driver: local
+  mail-dovecot-lib-spamassassin:
+    driver: local
+  mail-dovecot-lib-dovecot:
+    driver: local
+  mail-dovecot-conf-unbound:
+    driver: local
+  mail-dovecot-conf-sieve:
+    driver: local
+  mail-dovecot-conf-users:
+    driver: local
+  mail-dovecot-conf-ssl:
+    driver: local
+  mail-dovecot-spamassassin:
+    driver: local
+  mail-dovecot-log:
+    driver: local
+  mail-dovecot-ssl:
+    driver: local
+
+#  mail-elasticsearch-data:
+#    driver: local

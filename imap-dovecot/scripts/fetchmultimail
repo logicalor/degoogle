@@ -1,8 +1,9 @@
 #!/bin/bash
 
 FETCHMAILROOT="/opt/fetchmail"
-USERFILE="/opt/users"
+USERFILE="/opt/users/users"
 CONFIG_TEMPLATE="$FETCHMAILROOT/fetchmailrc_template"
+PASSKEY=$(cat /tmp/passkey)
 
 declare -A CURRENT_USERS
 

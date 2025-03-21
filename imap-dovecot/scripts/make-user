@@ -1,4 +1,5 @@
 #!/bin/bash
+PASSKEY=$(cat /tmp/passkey)
 
 # Ensure openssl is installed
 if ! command -v openssl &> /dev/null; then
@@ -14,7 +15,7 @@ fi
 
 USERNAME=$1
 PASSWORD=$2
-USERFILE="/opt/users"
+USERFILE="/opt/users/users"
 MAILDIR="/var/mail/$USERNAME/Maildir"
 
 # Check if PASSKEY environment variable is set

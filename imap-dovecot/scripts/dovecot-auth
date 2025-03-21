@@ -68,7 +68,7 @@ else
 fi
 
 # Perform credentials lookup/verification.
-lookup_result=`$action "/opt/users" "$USER" "$PASS" "$PASSKEY"` || {
+lookup_result=`$action "/opt/users/users" "$USER" "$PASS" "$PASSKEY"` || {
     # If it failed, consider it an internal temporary error.
     log_result "internal error (ran as `id`)"
     exit $ERR_TEMPFAIL

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Copy $PASSKEY to a temp file for dovecot auth to access it
+echo "$PASSKEY" > /tmp/passkey
+
+sudo unbound-anchor -v -a /etc/unbound/root.key
+
+# Start unbound
+echo "Starting unbound service"
+sudo unbound -d &
+
+# Give unbound some time to initialise
+sleep 5
+
+# Refresh the ca certs
+echo "Updating CA Certs"
+sudo update-ca-trust
+
+# Update spamassassin rules
+echo "Updating Spamassassin Rules"
+sudo /usr/bin/vendor_perl/sa-update -D
+
+# Update clamav virus definitions
+echo "Updating clamav database"
+sudo freshclam
+
+# Start Dovecot in foreground
+echo "Starting dovecot IMAP server"
+exec sudo dovecot -F &
+
+# Create a users file if it doesn't already exist
+[ ! -f /opt/users/users ] && sudo touch /opt/users/users
+
+# Start Fetchmail in background
+echo "Starting fetch multi mail"
+sudo fetchmultimail
+tail -f /dev/null

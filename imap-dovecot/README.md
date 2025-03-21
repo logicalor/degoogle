@@ -1,0 +1,1 @@
+- https://www.plesk.com/blog/product-technology/shell-checkpassword-authentication-in-dovecot/
