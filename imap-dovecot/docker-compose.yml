@@ -43,12 +43,9 @@ services:
       - ${DIR_MAIL_DOVECOT}:/var/mail
       - ${DIR_LETSENCRYPT}:/etc/letsencrypt:ro
     ports:
-#      - 143:143
-#      - 993:993
-      - 1143:143
-      - 1993:993
+      - 143:143
+      - 993:993
     restart: unless-stopped
-#    entrypoint: ["/usr/local/bin/entrypoint.sh"]
 #    labels:
 #      # Run nightly updates at midnight
 #      deck-chores.dovecot-update-ca-certs.cron: "0 0 0"
@@ -57,18 +54,6 @@ services:
 #      deck-chores.dovecot-update-clamav.command: freshclam --daemon-notify=/dev/null
 #      deck-chores.dovecot-spamassassin.cron: "0 0 0"
 #      deck-chores.dovecot-spamassassin.command: /usr/bin/vendor_perl/sa-update -D
-
-#  imap-elasticsearch:
-#    image: elasticsearch:7.17.28
-#    container_name: imap-elasticsearch
-#    ports:
-#      - 9200
-#    environment:
-#      discovery.type: single-node
-#      xpack.security.enabled: false
-#    volumes:
-#      - mail-elasticsearch-data:/usr/share/elasticsearch/data
-#    restart: unless-stopped
 
 volumes:
   mail-dovecot-lib-clamav:
@@ -91,6 +76,3 @@ volumes:
     driver: local
   mail-dovecot-ssl:
     driver: local
-
-#  mail-elasticsearch-data:
-#    driver: local
