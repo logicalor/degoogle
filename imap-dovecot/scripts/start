@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# Copy $PASSKEY to a temp file for dovecot auth to access it
+# Copy $PASSKEY to a temp file for non-root scripts to access it
 echo "$PASSKEY" > /tmp/passkey
+
+# Copy $IMAP_SERVER to a temp file for non-root scripts to access it
+echo "$IMAP_SERVER" > /tmp/imap_server
 
 sudo unbound-anchor -v -a /etc/unbound/root.key
 

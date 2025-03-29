@@ -3,11 +3,6 @@
 # Read the email from stdin
 mail=$(cat)
 
-# Debugging
-#echo "### BEFORE ###\n\n"
-#echo "$mail\n\n"
-#echo "### BEFORE ###\n\n"
-
 # Check if the email contains attachments by looking for multipart/mixed
 if echo "$mail" | grep -q -i "Content-Type: multipart/mixed"; then
   echo "Checking mail with ClamAV"
@@ -30,11 +25,6 @@ else
   # No virus found
   mail=$(printf "X-Virus-Status: Clean\n%b" "$mail")
 fi
-
-# Debugging
-#echo "### AFTER ###\n\n"
-#echo "$mail\n\n"
-#echo "### AFTER ###\n\n"
 
 echo "Passing to Spamassassin -> Dovecot > $1"
 # Pass the modified email to SpamAssassin and Dovecot
