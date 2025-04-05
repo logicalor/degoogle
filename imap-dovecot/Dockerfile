@@ -35,15 +35,19 @@ RUN mkdir -p /opt/sieve && chown serviceuser:users /opt/sieve
 RUN sed -i '/^NotifyClamd/s/^/#/' /etc/clamav/freshclam.conf
 
 # Grant sudo to serviceuser for select executables only
-RUN echo "serviceuser ALL=(ALL) NOPASSWD: /usr/sbin/dovecot, /usr/sbin/fetchmail, \
+RUN printf "serviceuser ALL=(ALL) NOPASSWD: /usr/sbin/dovecot, /usr/sbin/fetchmail, \
           /usr/bin/unbound-anchor, /usr/sbin/freshclam, /usr/sbin/update-ca-trust, \
           /usr/sbin/unbound, /usr/local/bin/fetchmultimail, \
-          /usr/bin/vendor_perl/sa-update, /usr/local/bin/make-user" >> /etc/sudoers
+          /usr/bin/vendor_perl/sa-update, /usr/local/bin/make-user, \
+          /usr/bin/vendor_perl/sa-learn\n" >> /etc/sudoers
+
+# Define some env vars to keep when preserving during sudo
+RUN printf "Defaults env_keep += \"PASSKEY TIMEZONE IMAP_SERVER LOG_DEBUG\"\n" >> /etc/sudoers
 
 # Use our non-root user to run the services
 USER serviceuser
 
-# Expose ports (IMAP only)
-EXPOSE 143 993
+# Expose ports (IMAP, managesieve)
+EXPOSE 993 4190
 
 CMD ["/usr/local/bin/start"]

@@ -22,7 +22,7 @@ services:
       - clamav
       - unbound
     volumes:
-      - ./conf/dovecot:/etc/dovecot:ro
+      - ./conf/dovecot:/etc/dovecot
       - ./conf/fetchmail/fetchmailrc_template:/opt/fetchmail/fetchmailrc_template:ro
       - ./conf/resolv/resolv.conf:/etc/resolv.conf:ro
       - ./conf/unbound/unbound.conf:/etc/unbound/unbound.conf:ro
@@ -44,8 +44,8 @@ services:
       - ${DIR_MAIL_DOVECOT}:/var/mail
       - ${DIR_LETSENCRYPT}:/etc/letsencrypt:ro
     ports:
-      - 143:143
       - 993:993
+      - 4190:4190
     restart: unless-stopped
 #    labels:
 #      # Run nightly updates at midnight

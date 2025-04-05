@@ -1,5 +1,4 @@
 #!/bin/bash
-PASSKEY=$(cat /tmp/passkey)
 
 # Ensure openssl is installed
 if ! command -v openssl &> /dev/null; then

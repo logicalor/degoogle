@@ -3,14 +3,12 @@
 FETCHMAILROOT="/opt/fetchmail"
 USERFILE="/opt/users/users"
 CONFIG_TEMPLATE="$FETCHMAILROOT/fetchmailrc_template"
-PASSKEY=$(cat /tmp/passkey)
 
 declare -A CURRENT_USERS
 
 start_fetchmail() {
     local username="$1"
     local password="$2"
-    local imap_server=$(cat /tmp/imap_server)
     local config_template="$3"
     local pid_file="/var/run/fetchmail-${username}.pid"
     local config_file="/tmp/fetchmailrc_${username}"
@@ -28,7 +26,7 @@ start_fetchmail() {
     sed \
         -e "s/{{USERNAME}}/${username}/g" \
         -e "s/{{PASSWORD}}/${escaped_password}/g" \
-        -e "s/{{IMAP_SERVER}}/$imap_server/g" \
+        -e "s/{{IMAP_SERVER}}/$IMAP_SERVER/g" \
         "$config_template" > "$config_file"
     chmod 0700 "$config_file"
 
