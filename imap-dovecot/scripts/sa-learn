@@ -1,0 +1,16 @@
+#!/bin/bash
+
+for userdir in /var/mail/*; do
+  user=$(basename "$userdir")
+  spamdir="$userdir/Maildir/.Junk/cur"
+  hamdir="$userdir/Maildir/cur"  # Assuming inbox is the default for ham
+  if [[ -d "$spamdir" ]]; then
+    printf "Learning from $spamdir ...\n"
+    /usr/bin/vendor_perl/sa-learn --spam --username="$user" "$spamdir"
+  fi
+  if [[ -d "$hamdir" ]]; then
+    printf "Learning from $hamdir ...\n"
+    /usr/bin/vendor_perl/sa-learn --ham --username="$user" "$hamdir"
+  fi
+done
+

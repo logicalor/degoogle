@@ -3,6 +3,13 @@
 # Copy $PASSKEY to a temp file for non-root scripts to access it
 echo "$PASSKEY" > /tmp/passkey
 
+SA_CONFIG_SRC="/config-spamassassin"
+SA_CONFIG_DEST="/etc/mail/spamassassin"
+
+if [ -z "$(ls -A $SA_CONFIG_DEST)" ]; then
+  cp -a $SA_CONFIG_SRC/* $SA_CONFIG_DEST
+fi
+
 sudo unbound-anchor -v -a /etc/unbound/root.key
 
 # Start unbound

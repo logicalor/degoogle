@@ -27,11 +27,13 @@ services:
       - ./conf/resolv/resolv.conf:/etc/resolv.conf:ro
       - ./conf/unbound/unbound.conf:/etc/unbound/unbound.conf:ro
       - ./conf/sieve/default.sieve:/opt/sieve/default.sieve:ro
+      - ./conf/spamassassin/local.cf:/etc/spamassassin/local.cf
       - ./scripts/start:/usr/local/bin/start:ro
       - ./scripts/fetchmultimail:/usr/local/bin/fetchmultimail:ro
       - ./scripts/mda:/usr/local/bin/mda:ro
       - ./scripts/dovecot-auth:/usr/local/bin/dovecot-auth:ro
       - ./scripts/make-user:/usr/local/bin/make-user:ro
+      - ./scripts/sa-learn:/usr/local/bin/sa-learn:ro
       - mail-dovecot-lib-clamav:/var/lib/clamav
       - mail-dovecot-lib-spamassassin:/var/lib/spamassassin
       - mail-dovecot-lib-dovecot:/var/lib/dovecot
@@ -39,6 +41,7 @@ services:
       - mail-dovecot-conf-sieve:/opt/sieve
       - mail-dovecot-conf-users:/opt/users
       - mail-dovecot-conf-ssl:/etc/ssl
+      - mail-dovecot-conf-spamassassin:/etc/mail/spamassassin
       - mail-dovecot-spamassassin:/home/serviceuser/.spamassassin
       - mail-dovecot-log:/var/log
       - ${DIR_MAIL_DOVECOT}:/var/mail
@@ -47,14 +50,19 @@ services:
       - 993:993
       - 4190:4190
     restart: unless-stopped
-#    labels:
-#      # Run nightly updates at midnight
-#      deck-chores.dovecot-update-ca-certs.cron: "0 0 0"
-#      deck-chores.dovecot-update-ca-certs.command: update-ca-trust
-#      deck-chores.dovecot-update-clamav.cron: "0 0 0"
-#      deck-chores.dovecot-update-clamav.command: freshclam --daemon-notify=/dev/null
-#      deck-chores.dovecot-spamassassin.cron: "0 0 0"
-#      deck-chores.dovecot-spamassassin.command: /usr/bin/vendor_perl/sa-update -D
+    labels:
+      # Update CA Certs
+      deck-chores.dovecot-update-ca-certs.cron: "0 0 0"
+      deck-chores.dovecot-update-ca-certs.command: sudo update-ca-trust
+      # Update ClamAV DB
+      deck-chores.dovecot-update-clamav.cron: "0 0 0"
+      deck-chores.dovecot-update-clamav.command: sudo freshclam --daemon-notify=/dev/null
+      # Update Spamassassin rules from remote sources
+      deck-chores.dovecot-spamassassin-update.cron: "0 0 0"
+      deck-chores.dovecot-spamassassin-update.command: sudo /usr/bin/vendor_perl/sa-update -D
+      # Update Spamassassin rules via learning
+      deck-chores.dovecot-spamassassin-learn.cron: "0 0 0 15"
+      deck-chores.dovecot-spamassassin-learn.command: sa-learn
 
 volumes:
   mail-dovecot-lib-clamav:
@@ -70,6 +78,8 @@ volumes:
   mail-dovecot-conf-users:
     driver: local
   mail-dovecot-conf-ssl:
+    driver: local
+  mail-dovecot-conf-spamassassin:
     driver: local
   mail-dovecot-spamassassin:
     driver: local

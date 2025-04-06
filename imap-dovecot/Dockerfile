@@ -23,6 +23,9 @@ RUN /usr/bin/vendor_perl/cpanm --notest MaxMind::DB::Reader Math::Int128 Math::I
 # Clean up
 RUN pacman -Scc --noconfirm && rm -rf /var/cache/pacman/pkg/* /root/.cpanm /tmp/*
 
+# Copy spamassassin config so we can copy it back into a volume later
+RUN cp -a /etc/mail/spamassassin /config-spamassassin
+
 # Generate dh.pem for Dovecot
 RUN mkdir -p /opt/dovecot && openssl dhparam -out "/opt/dovecot/dh.pem" 2048 && \
     chmod 600 /opt/dovecot/dh.pem
@@ -30,6 +33,8 @@ RUN mkdir -p /opt/dovecot && openssl dhparam -out "/opt/dovecot/dh.pem" 2048 && 
 # /opt/sieve will be mounted as a volume later but we grant privileges here so that
 # Dovecot can write a binary config
 RUN mkdir -p /opt/sieve && chown serviceuser:users /opt/sieve
+# Do the same for the main spamassassin work dir
+RUN mkdir -p /home/serviceuser/.spamassassin && chown serviceuser:users /home/serviceuser/.spamassassin
 
 # Configure freshclam to skip daemon notification as we're not running clamd
 RUN sed -i '/^NotifyClamd/s/^/#/' /etc/clamav/freshclam.conf
@@ -40,6 +45,11 @@ RUN printf "serviceuser ALL=(ALL) NOPASSWD: /usr/sbin/dovecot, /usr/sbin/fetchma
           /usr/sbin/unbound, /usr/local/bin/fetchmultimail, \
           /usr/bin/vendor_perl/sa-update, /usr/local/bin/make-user, \
           /usr/bin/vendor_perl/sa-learn\n" >> /etc/sudoers
+
+# Grant sudo to serviceuser to create directories for spamassassin
+RUN printf "serviceuser ALL=(ALL) NOPASSWD: /bin/mkdir -p /var/mail/*, \
+          /bin/chown -R * /var/mail/*, \
+          /bin/chmod -R * /var/mail/*\n" >> /etc/sudoers
 
 # Define some env vars to keep when preserving during sudo
 RUN printf "Defaults env_keep += \"PASSKEY TIMEZONE IMAP_SERVER LOG_DEBUG\"\n" >> /etc/sudoers

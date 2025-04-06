@@ -12,6 +12,15 @@ start_fetchmail() {
     local config_template="$3"
     local pid_file="/var/run/fetchmail-${username}.pid"
     local config_file="/tmp/fetchmailrc_${username}"
+    local spamassassin_dir="/var/mail/${username}/.spamassassin"
+
+    # ensure spamassassin directory exists for the user
+    if [ ! -d "$spamassassin_dir" ]; then
+        echo "Creating directory: $spamassassin_dir"
+        mkdir -p "$spamassassin_dir"
+        chown serviceuser:users "$spamassassin_dir"
+        chmod 700 "$spamassassin_dir"
+    fi
 
     echo "Decrypting password for user $username"
     local decrypted_password=$(echo "$password" | openssl enc -aes-256-cbc -d -a -pbkdf2 -pass pass:"$PASSKEY" 2>/dev/null)
