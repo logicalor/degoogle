@@ -1,0 +1,13 @@
+services:
+  snappymail:
+    image: ghcr.io/waldner/snappymail-docker:latest
+    container_name: snappymail
+    hostname: snappymail
+    volumes:
+      - ${WEBMAIL_DATA}:/snappymail/data
+    ports:
+      - ${EXTERNAL_PORT}:80
+    environment:
+      - TZ=${TZ:-UTC}
+      - UPLOAD_MAX_SIZE=${UPLOAD_MAX_SIZE:-10m}
+    restart: unless-stopped
